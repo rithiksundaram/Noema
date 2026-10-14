@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "Noema",
+    "slug": "noema",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "noema",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.noema.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Noema listens when you tap the microphone so you can answer by talking."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.noema.app"
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/favicon.png",
+      "name": "Noema",
+      "backgroundColor": "#E7ECF3"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 220,
+          "dark": {
+            "backgroundColor": "#111515",
+            "image": "./assets/images/splash-icon.png"
+          }
+        }
+      ],
+      "@clerk/expo",
+      "expo-secure-store",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Noema listens when you tap the microphone so you can answer by talking."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose a profile photo.",
+          "cameraPermission": "Take a profile photo."
+        }
+      ],
+      "expo-asset"
+    ],
+    "experiments": {
+      "typedRoutes": false,
+      "reactCompiler": true
+    }
+  }
+}
