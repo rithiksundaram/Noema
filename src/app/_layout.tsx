@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { OverlayProvider } from '@/components/Overlay';
 import { PhoneFrame } from '@/components/PhoneFrame';
+import { ConnectionsProvider } from '@/lib/connections';
 import { StoreProvider, useStore } from '@/lib/store';
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
@@ -38,7 +39,9 @@ function Framed() {
   return (
     <PhoneFrame dark={theme.dark}>
       <OverlayProvider>
-        <AppStack />
+        <ConnectionsProvider>
+          <AppStack />
+        </ConnectionsProvider>
       </OverlayProvider>
     </PhoneFrame>
   );
@@ -59,6 +62,8 @@ function AppStack() {
   }
 
   const onboarded = Boolean(user?.unsafeMetadata?.onboarded);
+  const isMember = user?.unsafeMetadata?.role === 'member';
+  const inApp = !!isSignedIn && onboarded;
 
   return (
     <>
@@ -70,12 +75,19 @@ function AppStack() {
         <Stack.Protected guard={!!isSignedIn && !onboarded}>
           <Stack.Screen name="quiz" />
         </Stack.Protected>
-        <Stack.Protected guard={!!isSignedIn && onboarded}>
+        {/* The person sharing their day */}
+        <Stack.Protected guard={inApp && !isMember}>
           <Stack.Screen name="(home)" />
-          <Stack.Screen name="settings" />
           <Stack.Screen name="compose" options={{ gestureEnabled: false }} />
-          <Stack.Screen name="message/[id]" />
           <Stack.Screen name="retake-quiz" />
+        </Stack.Protected>
+        {/* Family members */}
+        <Stack.Protected guard={inApp && isMember}>
+          <Stack.Screen name="(member)" />
+        </Stack.Protected>
+        <Stack.Protected guard={inApp}>
+          <Stack.Screen name="settings" />
+          <Stack.Screen name="message/[id]" />
         </Stack.Protected>
       </Stack>
     </>

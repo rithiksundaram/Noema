@@ -58,3 +58,11 @@ export function buildTheme(settings: Settings, systemDark: boolean) {
 export function useSystemDark() {
   return useColorScheme() === 'dark';
 }
+
+/**
+ * Height of the bottom tab bar (without the home-bar area): top padding, the tab's own padding,
+ * the icon box (at least 28px), and one line of label text.
+ */
+export function tabBarHeight(t: Theme) {
+  return Math.ceil(6 + 10 + Math.max(28, 24 * t.scale) + t.font.small * 1.35 + 4);
+}

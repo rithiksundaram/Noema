@@ -6,8 +6,8 @@ import { Pressable, View } from 'react-native';
 import { ProfileHeader } from '@/components/ProfileHeader';
 import { Card, Screen, Txt } from '@/components/ui';
 import { formatDate } from '@/lib/format';
+import { useConnections, type MessageView } from '@/lib/connections';
 import { useStore } from '@/lib/store';
-import type { Message } from '@/lib/types';
 
 type Sort = 'newest' | 'oldest' | 'longest' | 'recipient';
 const SORTS: { key: Sort; label: string }[] = [
@@ -18,16 +18,17 @@ const SORTS: { key: Sort; label: string }[] = [
 ];
 
 export default function Messages() {
-  const { messages, theme: t } = useStore();
+  const { theme: t } = useStore();
+  const { messages } = useConnections();
   const [sort, setSort] = useState<Sort>('newest');
 
   const sorted = useMemo(() => {
     const list = [...messages];
-    const by: Record<Sort, (a: Message, b: Message) => number> = {
+    const by: Record<Sort, (a: MessageView, b: MessageView) => number> = {
       newest: (a, b) => b.createdAt - a.createdAt,
       oldest: (a, b) => a.createdAt - b.createdAt,
       longest: (a, b) => b.text.length - a.text.length,
-      recipient: (a, b) => (a.recipientNames[0] ?? '').localeCompare(b.recipientNames[0] ?? ''),
+      recipient: (a, b) => (a.recipients[0]?.name ?? '').localeCompare(b.recipients[0]?.name ?? ''),
     };
     return list.sort(by[sort]);
   }, [messages, sort]);
@@ -100,7 +101,10 @@ export default function Messages() {
                   <Txt weight="700" style={{ flex: 1 }}>{formatDate(m.createdAt)}</Txt>
                   <Ionicons name="chevron-forward" size={22} color={t.colors.muted} />
                 </View>
-                <Txt size="small" muted>To {m.recipientNames.join(', ')}</Txt>
+                <Txt size="small" muted>
+                  To {m.recipients.map((r) => r.name).join(', ')}
+                  {m.readBy.length ? ` · Read by ${m.readBy.length}` : ' · Not read yet'}
+                </Txt>
                 <Txt size="small" numberOfLines={2}>{m.text.replace(/^Hello family,\s*/i, '')}</Txt>
               </Card>
             )}

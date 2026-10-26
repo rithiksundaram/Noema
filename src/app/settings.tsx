@@ -16,7 +16,8 @@ import type { AccentName, Settings, TextSize, ThemeMode } from '@/lib/types';
 export default function SettingsScreen() {
   const { user } = useUser();
   const { signOut } = useClerk();
-  const { settings, updateSettings, clearMessages, messages, theme: t } = useStore();
+  const { settings, updateSettings, theme: t } = useStore();
+  const isOperator = user?.unsafeMetadata?.role !== 'member';
   const [editProfile, setEditProfile] = useState(false);
   const [changePw, setChangePw] = useState(false);
   const dialog = useDialog();
@@ -26,10 +27,6 @@ export default function SettingsScreen() {
     if (yes) await signOut();
   }
 
-  async function clearHistory() {
-    const yes = await dialog.confirm({ title: 'Delete all sent messages?', message: 'This removes your message history from this device.', confirmText: 'Delete', destructive: true });
-    if (yes) clearMessages();
-  }
 
   return (
     <Screen>
@@ -40,7 +37,8 @@ export default function SettingsScreen() {
         <Row icon="person" label="Name and photo" value={user?.fullName ?? ''} onPress={() => setEditProfile(true)} />
         <Row icon="at" label="Username" value={user?.username ?? ''} />
         <Row icon="key" label="Change password" onPress={() => setChangePw(true)} />
-        <Row icon="clipboard" label="Redo my questions quiz" onPress={() => router.push('/retake-quiz')} last />
+        <Row icon="people" label="Account type" value={isOperator ? 'Shares their day' : 'Family member'} last={!isOperator} />
+        {isOperator ? <Row icon="clipboard" label="Redo my questions quiz" onPress={() => router.push('/retake-quiz')} last /> : null}
       </Card>
 
       <SectionTitle>Appearance</SectionTitle>
@@ -89,53 +87,58 @@ export default function SettingsScreen() {
         />
       </Card>
 
-      <SectionTitle>Answering questions</SectionTitle>
-      <Card>
-        <Txt weight="700">How I answer</Txt>
-        <Segmented<Settings['answerStyle']>
-          value={settings.answerStyle}
-          onChange={(v) => updateSettings({ answerStyle: v })}
-          options={[
-            { value: 'tap', label: 'Tap', icon: 'hand-left' },
-            { value: 'voice', label: 'Talk', icon: 'mic' },
-            { value: 'both', label: 'Both', icon: 'apps' },
-          ]}
-        />
-        <Txt weight="700">Questions each time</Txt>
-        <Segmented<number>
-          value={settings.questionCount}
-          onChange={(v) => updateSettings({ questionCount: v })}
-          options={[10, 12, 15].map((n) => ({ value: n, label: String(n) }))}
-        />
-        <Toggle
-          label="Stop listening when I go quiet"
-          help="Or say “done” or tap “I'm done”."
-          value={settings.autoStop}
-          onChange={(v) => updateSettings({ autoStop: v })}
-        />
-      </Card>
+      {isOperator ? (
+        <>
+        <SectionTitle>Answering questions</SectionTitle>
+        <Card>
+          <Txt weight="700">How I answer</Txt>
+          <Segmented<Settings['answerStyle']>
+            value={settings.answerStyle}
+            onChange={(v) => updateSettings({ answerStyle: v })}
+            options={[
+              { value: 'tap', label: 'Tap', icon: 'hand-left' },
+              { value: 'voice', label: 'Talk', icon: 'mic' },
+              { value: 'both', label: 'Both', icon: 'apps' },
+            ]}
+          />
+          <Txt weight="700">Questions each time</Txt>
+          <Segmented<number>
+            value={settings.questionCount}
+            onChange={(v) => updateSettings({ questionCount: v })}
+            options={[10, 12, 15].map((n) => ({ value: n, label: String(n) }))}
+          />
+          <Toggle
+            label="Stop listening when I go quiet"
+            help="Or say “done” or tap “I'm done”."
+            value={settings.autoStop}
+            onChange={(v) => updateSettings({ autoStop: v })}
+          />
+        </Card>
 
-      <SectionTitle>Messages</SectionTitle>
-      <Card>
-        <Txt weight="700">Message length</Txt>
-        <Segmented<Settings['messageLength']>
-          value={settings.messageLength}
-          onChange={(v) => updateSettings({ messageLength: v })}
-          options={[
-            { value: 'long', label: 'Every detail' },
-            { value: 'medium', label: 'Compact' },
-          ]}
-        />
-        <Txt size="small" muted>Noema only smooths out what you said. It never adds anything new.</Txt>
-      </Card>
+        <SectionTitle>Messages</SectionTitle>
+        <Card>
+          <Txt weight="700">Message length</Txt>
+          <Segmented<Settings['messageLength']>
+            value={settings.messageLength}
+            onChange={(v) => updateSettings({ messageLength: v })}
+            options={[
+              { value: 'long', label: 'Every detail' },
+              { value: 'medium', label: 'Compact' },
+            ]}
+          />
+          <Txt size="small" muted>Noema only smooths out what you said. It never adds anything new.</Txt>
+        </Card>
+
+        </>
+      ) : null}
 
       <SectionTitle>Privacy</SectionTitle>
       <Card style={{ padding: 0, gap: 0 }}>
-        <Row icon="sparkles" label="AI helper" value={aiEnabled() ? 'On' : 'Off'} />
-        <Row icon="trash" label={`Delete message history (${messages.length})`} onPress={clearHistory} danger last />
+        <Row icon="sparkles" label="AI helper" value={aiEnabled() ? 'On' : 'Off'} last />
+
       </Card>
       <Txt size="small" muted>
-        Your voice recordings are sent to OpenAI to be understood, and are not saved by Noema. Messages are stored on this device.
+        Voice recordings are sent to OpenAI to be understood and are not saved. Messages are only shared with family who accepted your invite.
       </Txt>
 
       <SectionTitle>About</SectionTitle>

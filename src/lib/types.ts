@@ -26,28 +26,11 @@ export type Settings = {
   confirmVoice: boolean;
 };
 
-export type FamilyMember = {
-  id: string;
-  name: string;
-  relation: string;
-  contact?: string;
-  color: string;
-};
-
 export type QA = {
   question: string;
   answer: string;
   /** How she answered — kept so the family view can show her real words. */
   via: 'tap' | 'voice' | 'type';
-};
-
-export type Message = {
-  id: string;
-  text: string;
-  createdAt: number;
-  recipientIds: string[];
-  recipientNames: string[];
-  answers: QA[];
 };
 
 export type AskedQuestion = {

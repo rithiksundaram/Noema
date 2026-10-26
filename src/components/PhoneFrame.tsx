@@ -1,10 +1,13 @@
 import type { ReactNode } from 'react';
 import { Platform, useWindowDimensions, View } from 'react-native';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 import { Txt } from './ui';
 
 const W = 402;
 const H = 874;
+/** Space an iPhone keeps clear at the top (status bar) and bottom (home bar), so nothing hides under the rounded corners. */
+const INSETS = { top: 16, bottom: 22, left: 0, right: 0 };
 
 /**
  * On a computer browser, shows the app inside a phone-sized frame so it looks and
@@ -38,7 +41,7 @@ export function PhoneFrame({ children, dark }: { children: ReactNode; dark: bool
           boxShadow: '0 30px 80px rgba(20, 40, 80, 0.18)',
         }}
       >
-        {children}
+        <SafeAreaInsetsContext.Provider value={INSETS}>{children}</SafeAreaInsetsContext.Provider>
       </View>
       <Txt size="small" color={dark ? '#6B7684' : '#7A8696'}>Noema · iPhone preview</Txt>
     </View>

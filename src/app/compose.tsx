@@ -9,6 +9,7 @@ import { VoiceRecorder } from '@/components/VoiceRecorder';
 import { Button, Card, Chip, Choice, Field, ProgressBar, Screen, TopBar, Txt } from '@/components/ui';
 import { editMessage, nextQuestion, writeMessage } from '@/lib/ai';
 import { firstQuestion } from '@/lib/questions';
+import { useConnections } from '@/lib/connections';
 import { useStore } from '@/lib/store';
 import type { AskedQuestion, QA, QuizAnswers } from '@/lib/types';
 
@@ -20,7 +21,11 @@ const SKIPPED = '(skipped)';
 
 export default function Compose() {
   const { user } = useUser();
-  const { settings, family, addMessage, setLastSentId, addMember, theme: t } = useStore();
+  const { settings, setLastSentId, theme: t } = useStore();
+  const connections = useConnections();
+  // Only people who accepted the invite can receive messages.
+  const family = connections.family.map((l) => ({ id: l.other.id, name: l.other.name, relation: l.relation }));
+  const [sending, setSending] = useState(false);
   const dialog = useDialog();
   const quiz = user?.unsafeMetadata?.quiz as QuizAnswers | undefined;
   const firstName = user?.firstName ?? '';
@@ -46,15 +51,16 @@ export default function Compose() {
   const showMic = settings.answerStyle !== 'tap';
   const realAnswers = answers.filter((a) => a.answer !== SKIPPED);
 
-  // Keep the recipient list in step with the family list (e.g. after a quick add below).
+  // Keep the recipient list in step with the family list (someone may accept while she writes).
+  const familyKey = family.map((f) => f.id).join(',');
   useEffect(() => {
     setRecipients((r) => {
-      const ids = family.map((f) => f.id);
+      const ids = familyKey ? familyKey.split(',') : [];
       const added = ids.filter((id) => !knownIds.current.includes(id));
       knownIds.current = ids;
       return [...r.filter((id) => ids.includes(id)), ...added];
     });
-  }, [family]);
+  }, [familyKey]);
 
   async function loadNext(list: QA[]) {
     const id = ++loadId.current;
@@ -124,11 +130,17 @@ export default function Compose() {
     }
   }
 
-  function send() {
-    const chosen = family.filter((f) => recipients.includes(f.id));
-    const msg = addMessage({ text: message.trim(), answers: realAnswers, recipientIds: chosen.map((f) => f.id), recipientNames: chosen.map((f) => f.name) });
-    setLastSentId(msg.id);
-    router.dismissTo('/family');
+  async function send() {
+    setSending(true);
+    try {
+      const id = await connections.send({ text: message.trim(), answers: realAnswers, recipientIds: recipients });
+      setLastSentId(id);
+      router.dismissTo('/family');
+    } catch (e) {
+      void dialog.notify('Could not send', e instanceof Error ? e.message : 'Please try again.');
+    } finally {
+      setSending(false);
+    }
   }
 
   // ---------- Screens ----------
@@ -240,7 +252,7 @@ export default function Compose() {
           ? 'Send to everyone'
           : `Send to ${recipients.length === 1 ? family.find((f) => f.id === recipients[0])?.name : `${recipients.length} people`}`;
     return (
-      <Screen footer={<Button title={label} big icon="paper-plane" disabled={recipients.length === 0} onPress={send} />}>
+      <Screen footer={<Button title={label} big icon="paper-plane" loading={sending} disabled={recipients.length === 0} onPress={send} />}>
         <TopBar title="Who gets it?" onBack={goBack} />
         {family.length > 1 ? (
           <Choice label="Everyone" icon="people" selected={allOn} onPress={() => setRecipients(allOn ? [] : family.map((f) => f.id))} />
@@ -254,7 +266,19 @@ export default function Compose() {
             onPress={() => setRecipients((r) => (r.includes(f.id) ? r.filter((x) => x !== f.id) : [...r, f.id]))}
           />
         ))}
-        <QuickAdd onAdd={(name) => addMember({ name, relation: 'Family' })} first={family.length === 0} />
+        {family.length === 0 ? (
+          <Card>
+            <Txt weight="700">No family connected yet</Txt>
+            <Txt size="small" muted>
+              Add family by their username on the Family tab. They can get your message once they accept. Your message is kept here until then, so go back and send it after.
+            </Txt>
+          </Card>
+        ) : null}
+        {connections.pending.length > 0 ? (
+          <Txt size="small" muted>
+            Waiting for {connections.pending.map((l) => l.other.name).join(', ')} to accept your invite.
+          </Txt>
+        ) : null}
       </Screen>
     );
   }
@@ -374,29 +398,5 @@ function ChangeSheet({ visible, onClose, onSubmit }: { visible: boolean; onClose
         <Field label="Or type it" value={value} onChangeText={setValue} multiline style={{ minHeight: 80, textAlignVertical: 'top' }} />
       </Screen>
     </Sheet>
-  );
-}
-
-function QuickAdd({ onAdd, first }: { onAdd: (name: string) => void; first?: boolean }) {
-  const [name, setName] = useState('');
-  return (
-    <Card>
-      <Txt weight="700">{first ? 'Add someone to send it to' : 'Add someone else'}</Txt>
-      <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}>
-        <View style={{ flex: 1 }}>
-          <Field label="Their name" value={name} onChangeText={setName} placeholder="For example: Iyla" />
-        </View>
-        <Button
-          title="Add"
-          icon="person-add"
-          variant="soft"
-          disabled={!name.trim()}
-          onPress={() => {
-            onAdd(name.trim());
-            setName('');
-          }}
-        />
-      </View>
-    </Card>
   );
 }

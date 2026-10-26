@@ -45,3 +45,6 @@ example
 # secrets
 .env
 
+
+# local server data
+data/

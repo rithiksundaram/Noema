@@ -138,8 +138,10 @@ export async function understand(question: string, heard: string): Promise<strin
   try {
     const out = await chat(
       `An older woman with speech difficulty answered a question with a few spoken words. The speech-to-text may be jumbled or have wrong words.
-Write what she most likely meant as a short, clear first-person answer (under 20 words).
-Drop filler words like "um". Fix obvious mis-hearings and grammar, but keep her meaning and EVERY detail she gave. ${NO_INVENTION}
+Write what she most likely meant as a short, clear first-person answer.
+Drop filler words like "um". Fix obvious mis-hearings and grammar, but keep her meaning.
+Keep EVERYTHING she said, even parts that don't answer the question and feelings like "I miss you all". Never remove a sentence she said.
+Never add anything she didn't say.
 If the words make no sense at all, reply exactly: ???`,
       `Question: ${question}\nWhat the microphone heard: "${words}"`,
       { temperature: 0.2 },

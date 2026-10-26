@@ -1,13 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, View } from 'react-native';
 
+import { useConnections } from '@/lib/connections';
 import { useStore } from '@/lib/store';
 import { useDialog } from './Overlay';
 import { Txt } from './ui';
 
 /** The small "Message sent" tag shown on the profile after sending, with an X and Unsend. */
 export function SentTag() {
-  const { lastSentId, setLastSentId, messages, removeMessage, theme: t } = useStore();
+  const { lastSentId, setLastSentId, theme: t } = useStore();
+  const { messages, unsend: unsendMessage } = useConnections();
   const dialog = useDialog();
   const msg = messages.find((m) => m.id === lastSentId);
   if (!msg) return null;
@@ -15,8 +17,12 @@ export function SentTag() {
   async function unsend() {
     const yes = await dialog.confirm({ title: 'Unsend this message?', message: 'Your family will no longer see it.', confirmText: 'Unsend', cancelText: 'Keep it', destructive: true });
     if (!yes) return;
-    removeMessage(msg!.id);
-    setLastSentId(null);
+    try {
+      await unsendMessage(msg!.id);
+      setLastSentId(null);
+    } catch (e) {
+      void dialog.notify('Could not unsend', e instanceof Error ? e.message : undefined);
+    }
   }
 
   return (
@@ -37,7 +43,7 @@ export function SentTag() {
       <Ionicons name="checkmark-circle" size={24 * t.scale} color={t.colors.success} />
       <View style={{ flex: 1 }}>
         <Txt weight="700">Message sent</Txt>
-        <Txt size="small" muted numberOfLines={1}>To {msg.recipientNames.join(', ')}</Txt>
+        <Txt size="small" muted numberOfLines={1}>To {msg.recipients.map((r) => r.name).join(', ')}</Txt>
       </View>
       <Pressable
         onPress={unsend}
